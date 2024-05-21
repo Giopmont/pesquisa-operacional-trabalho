@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Formulário de Programação Linear</title>
+    <link rel="stylesheet" href="css/style_Menu.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: auto;
+        }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+        }
+        .menu a {
+            margin: 0 15px;
+            text-decoration: none;
+            color: #000;
+        }
+        .menu a:hover {
+            text-decoration: underline;
+        }
+        h1, h2, h3 {
+            text-align: center;
+        }
+        form {
+            margin: 20px 0;
+        }
+        form label, form input, form select {
+            display: block;
+            margin: 10px 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        table, th, td {
+            border: 1px solid #000;
+        }
+        th, td {
+            padding: 10px;
+            text-align: center;
+        }
+        .pivot-row {
+            background-color: #ffcccc;
+        }
+        .pivot-column {
+            background-color: #ccffcc;
+        }
+        .pivot-number {
+            font-weight: bold;
+            color: #d9534f;
+        }
+        .resultado {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="center">
+            <div class="logo"><img src="Imagens/logo.png" width="200" height="100"/></div>
+            <div class="menu">
+                <a href="index.html">Home</a>
+                <a href="Documentação/Imagens pagina.pdf" target="_blank" download>Documentação</a>
+                <a href="#">Sobre</a>
+            </div>
+        </div>
+    </header>
+    <div class="container">
+        <h1 id="Titulo Form">Formulário de Programação Linear</h1>
+        <form id="formVariaveisRestricoes">
+            <label for="num_variaveis">Número de Variáveis:</label>
+            <input type="number" id="num_variaveis" name="num_variaveis" min="1" required><br><br>
+            <label for="num_restricoes">Número de Restrições:</label>
+            <input type="number" id="num_restricoes" name="num_restricoes" min="1" required><br><br>
+            <input type="submit" value="Gerar Tabela" id="enviarDados">
+        </form>
+        <form id="tabelaGerada"></form>
+        <div id="resultado" class="resultado"></div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            document.getElementById('formVariaveisRestricoes').addEventListener('submit', function (event) {
+                event.preventDefault();
+
+                var numVariaveis = parseInt(document.getElementById('num_variaveis').value);
+                var numRestricoes = parseInt(document.getElementById('num_restricoes').value);
+
+                var tabelaHTML = '<table>';
+                tabelaHTML += '<tr><th rowspan="2"></th><th colspan="' + numVariaveis + '">Variáveis</th><th rowspan="2">Tipo de Problema</th></tr>';
+                tabelaHTML += '<tr>';
+                for (var i = 1; i <= numVariaveis; i++) {
+                    tabelaHTML += '<th>X' + i + '</th>';
+                }
+                tabelaHTML += '</tr>';
+
+                tabelaHTML += '<tr><td>Objetivo</td>';
+                for (var i = 1; i <= numVariaveis; i++) {
+                    tabelaHTML += '<td><input type="number" id="funcao_z_var_' + i + '" name="funcao_z_var_' + i + '" required></td>';
+                }
+                tabelaHTML += '<td><select id="tipo_problema" name="tipo_problema" required><option value="maximizar">Maximizar</option><option value="minimizar">Minimizar</option></select></td></tr>';
+
+                for (var j = 1; j <= numRestricoes; j++) {
+                    tabelaHTML += '<tr><td>Restrição ' + j + '</td>';
+                    for (var k = 1; k <= numVariaveis; k++) {
+                        tabelaHTML += '<td><input type="number" id="restricao_' + j + '_var_' + k + '" name="restricao_' + j + '_var_' + k + '" required></td>';
+                    }
+                    tabelaHTML += '<td><select id="sinal_restricao_' + j + '" name="sinal_restricao_' + j + '" required><option value="<="><=</option><option value="=">=</option><option value=">=">>=</option></select><input type="number" id="valor_restricao_' + j + '" name="valor_restricao_' + j + '" required></td></tr>';
+                }
+
+                tabelaHTML += '<tr><td>Limite Inferior</td>';
+                for (var i = 1; i <= numVariaveis; i++) {
+                    tabelaHTML += '<td><input type="number" id="limite_inferior_var_' + i + '" name="limite_inferior_var_' + i + '" value="0" required></td>';
+                }
+                tabelaHTML += '</tr>';
+
+                tabelaHTML += '<tr><td>Limite Superior</td>';
+                for (var i = 1; i <= numVariaveis; i++) {
+                    tabelaHTML += '<td><input type="text" id="limite_superior_var_' + i + '" name="limite_superior_var_' + i + '" value="infinity" required></td>';
+                }
+                tabelaHTML += '</tr>';
+
+                tabelaHTML += '<tr><td>Irrestrito (s/n)?</td>';
+                for (var i = 1; i <= numVariaveis; i++) {
+                    tabelaHTML += '<td><input type="text" id="irrestrito_var_' + i + '" name="irrestrito_var_' + i + '" value="n" required></td>';
+                }
+                tabelaHTML += '</tr>';
+
+                tabelaHTML += '</table>';
+                tabelaHTML += '<input type="submit" value="Solucionar" id="solucionarDados">';
+                document.getElementById('tabelaGerada').innerHTML = tabelaHTML;
+
+                document.getElementById('solucionarDados').addEventListener('click', function (event) {
+                    event.preventDefault();
+
+                    var objetivo = [];
+                    var variaveisNomes = [];
+                    for (var i = 1; i <= numVariaveis; i++) {
+                        objetivo.push(parseFloat(document.getElementById('funcao_z_var_' + i).value));
+                        variaveisNomes.push('X' + i);
+                    }
+
+                    var restricoes = [];
+                    for (var j = 1; j <= numRestricoes; j++) {
+                        var coeficientes = [];
+                        for (var k = 1; k <= numVariaveis; k++) {
+                            coeficientes.push(parseFloat(document.getElementById('restricao_' + j + '_var_' + k).value));
+                        }
+                        var tipo = document.getElementById('sinal_restricao_' + j).value;
+                        var lado_direito = parseFloat(document.getElementById('valor_restricao_' + j).value);
+                        restricoes.push({ coeficientes, tipo, lado_direito });
+                    }
+
+                    var limites = [];
+                    for (var i = 1; i <= numVariaveis; i++) {
+                        var limite_inferior = parseFloat(document.getElementById('limite_inferior_var_' + i).value);
+                        var limite_superior = document.getElementById('limite_superior_var_' + i).value === "infinity" ? Infinity : parseFloat(document.getElementById('limite_superior_var_' + i).value);
+                        var irrestrito = document.getElementById('irrestrito_var_' + i).value.toLowerCase() === 's';
+                        limites.push({ limite_inferior, limite_superior, irrestrito });
+                    }
+
+                    var tipo_problema = document.getElementById('tipo_problema').value;
+
+                    var dados = { num_variaveis: numVariaveis, objetivo, restricoes, tipo_problema, limites };
+
+                    fetch('http://localhost:3000/simplex', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(dados)
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log('Resposta do servidor:', data);
+                        renderizarIteracoes(data.iteracoes, data.resumo, variaveisNomes, numRestricoes);
+                    })
+                    .catch(error => console.error('Erro:', error));
+                });
+            });
+
+            function renderizarIteracoes(iteracoes, resumo, variaveisNomes, numRestricoes) {
+                var iteracoesHTML = `<h2>Iterações</h2>`;
+                iteracoesHTML += `<h3>Resumo</h3>`;
+                iteracoesHTML += `<p>Número de Iterações: ${resumo.numeroDeIteracoes}</p>`;
+                iteracoesHTML += `<p>Valor Ótimo: ${resumo.valorOtimo}</p>`;
+                iteracoesHTML += `<p>Variáveis Básicas: ${resumo.variaveisBasicas.map(v => `${v.variavel} = ${v.valor}`).join(', ')}</p>`;
+            
+                iteracoes.forEach((iteracao, index) => {
+                    iteracoesHTML += `<h3>Iteração ${index + 1}</h3>`;
+                    iteracoesHTML += '<table>';
+                    iteracoesHTML += '<tr><th>Base</th>';
+            
+                    let extraVariablesCount = iteracao.Tabela[0].length - variaveisNomes.length;
+                    let allVariableNames = [...variaveisNomes, ...Array.from({ length: extraVariablesCount }, (_, i) => `Sx${i + 1}`)];
+            
+                    allVariableNames.forEach(varName => {
+                        iteracoesHTML += `<th>${varName}</th>`;
+                    });
+            
+                    iteracoesHTML += '</tr>';
+                    iteracao.Tabela.forEach((linha, linhaIndex) => {
+                        iteracoesHTML += '<tr>';
+                        if (linhaIndex > 0) {
+                            let varBasica = iteracao.variaveisBasicas.find(v => v.linha === linhaIndex);
+                            iteracoesHTML += `<td>${varBasica ? varBasica.variavel : ''}</td>`;
+                        } else {
+                            iteracoesHTML += '<td>Z</td>';
+                        }
+                        linha.forEach((celula, colIndex) => {
+                            let cellClass = '';
+                            if (linhaIndex === iteracao.pivot.linha) cellClass += ' pivot-row';
+                            if (colIndex === iteracao.pivot.coluna) cellClass += ' pivot-column';
+                            iteracoesHTML += `<td class="${cellClass}">${linhaIndex === iteracao.pivot.linha && colIndex === iteracao.pivot.coluna ? `<span class="pivot-number">${celula}</span>` : celula}</td>`;
+                        });
+                        iteracoesHTML += '</tr>';
+                    });
+                    iteracoesHTML += '</table>';
+                });
+                document.getElementById('resultado').innerHTML = iteracoesHTML;
+            }
+            
+        });
+    </script>
+</body>
+</html>

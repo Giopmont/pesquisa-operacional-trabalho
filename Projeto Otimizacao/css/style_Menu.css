@@ -1,0 +1,99 @@
+/* Estilos para centralizar a tabela */
+#tabelaGerada {
+  margin-top: 2em; /* Espaço de 2em (duas linhas) acima da tabela */
+  margin-bottom: 2em; /* Espaço de 2em (duas linhas) abaixo da tabela */
+  margin-left: auto; /* Centraliza horizontalmente */
+  margin-right: auto; /* Centraliza horizontalmente */
+  width: 80%;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+}
+
+#Solution, #solucionarDados {
+  margin-top: 2em; 
+  margin-bottom: 2em; 
+  margin-left: auto; 
+  margin-right: auto;
+}
+
+table {
+  margin: 0 auto; /* Centraliza a tabela dentro da div */
+  width: 100%; /* Garante que a tabela ocupe toda a largura da div */
+  border-collapse: collapse;
+}
+
+th, td {
+  text-align: center; /* Centraliza o conteúdo das células */
+  border-radius: 5px;
+  padding: 10px;
+  border: 1px solid #000;
+}
+
+h1 {
+  text-align: center; /* Centraliza o texto */
+}
+
+form {
+  margin: 0 auto; /* Centraliza o formulário na página */
+  width: 50%; /* Ajusta a largura do formulário conforme desejado */
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: Verdana, Geneva, Tahoma, sans-serif;
+}
+
+.center {
+  display: flex;
+  flex-wrap: wrap;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 2%;
+}
+
+header {
+  padding: 20px 0;
+}
+
+.logo {
+  width: 30%;
+}
+
+.menu {
+  padding-top: 30px;
+  width: 50%;
+  text-align: right;
+}
+
+.menu a {
+  color: #7f451d;
+  text-decoration: none;
+  font-weight: bold;
+  margin-right: 15px;
+}
+
+body {
+  background-color: #e8ae74; 
+}
+
+input {
+  border-radius: 5px;
+}
+
+/* Estilos para destacar pivôs na tabela */
+.pivot-row {
+  background-color: #ffcccc;
+}
+.pivot-column {
+  background-color: #ccffcc;
+}
+.pivot-number {
+  font-weight: bold;
+  color: #d9534f; /* Cor para destacar o número pivô */
+}
+.resultado {
+  margin-top: 20px;
+}

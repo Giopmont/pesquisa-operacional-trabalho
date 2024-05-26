@@ -161,19 +161,11 @@
                         restricoes.push({ coeficientes, tipo, lado_direito });
                     }
 
-                    var limites = [];
-                    for (var i = 1; i <= numVariaveis; i++) {
-                        var limite_inferior = parseFloat(document.getElementById('limite_inferior_var_' + i).value);
-                        var limite_superior = document.getElementById('limite_superior_var_' + i).value === "infinity" ? Infinity : parseFloat(document.getElementById('limite_superior_var_' + i).value);
-                        var irrestrito = document.getElementById('irrestrito_var_' + i).value.toLowerCase() === 's';
-                        limites.push({ limite_inferior, limite_superior, irrestrito });
-                    }
-
                     var tipo_problema = document.getElementById('tipo_problema').value;
 
-                    var dados = { num_variaveis: numVariaveis, objetivo, restricoes, tipo_problema, limites };
+                    var dados = { num_variaveis: numVariaveis, objetivo, restricoes, tipo_problema };
 
-                    fetch('http://localhost:3000/simplex', {
+                    fetch('http://localhost:3003/simplex', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(dados)
@@ -181,7 +173,11 @@
                     .then(response => response.json())
                     .then(data => {
                         console.log('Resposta do servidor:', data);
-                        renderizarIteracoes(data.iteracoes, data.resumo, variaveisNomes, numRestricoes);
+                        if (data.status === "Sucesso") {
+                            renderizarIteracoes(data.iteracoes, data.resumo, variaveisNomes, numRestricoes);
+                        } else {
+                            document.getElementById('resultado').innerHTML = `<p>${data.mensagem}</p>`;
+                        }
                     })
                     .catch(error => console.error('Erro:', error));
                 });
@@ -193,19 +189,19 @@
                 iteracoesHTML += `<p>Número de Iterações: ${resumo.numeroDeIteracoes}</p>`;
                 iteracoesHTML += `<p>Valor Ótimo: ${resumo.valorOtimo}</p>`;
                 iteracoesHTML += `<p>Variáveis Básicas: ${resumo.variaveisBasicas.map(v => `${v.variavel} = ${v.valor}`).join(', ')}</p>`;
-            
+
                 iteracoes.forEach((iteracao, index) => {
                     iteracoesHTML += `<h3>Iteração ${index + 1}</h3>`;
                     iteracoesHTML += '<table>';
                     iteracoesHTML += '<tr><th>Base</th>';
-            
+
                     let extraVariablesCount = iteracao.Tabela[0].length - variaveisNomes.length;
                     let allVariableNames = [...variaveisNomes, ...Array.from({ length: extraVariablesCount }, (_, i) => `Sx${i + 1}`)];
-            
+
                     allVariableNames.forEach(varName => {
                         iteracoesHTML += `<th>${varName}</th>`;
                     });
-            
+
                     iteracoesHTML += '</tr>';
                     iteracao.Tabela.forEach((linha, linhaIndex) => {
                         iteracoesHTML += '<tr>';
@@ -227,7 +223,7 @@
                 });
                 document.getElementById('resultado').innerHTML = iteracoesHTML;
             }
-            
+
         });
     </script>
 </body>

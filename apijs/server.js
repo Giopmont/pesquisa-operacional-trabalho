@@ -77,6 +77,14 @@ function solverSimplex(dados) {
     let solucao = extrairSolucao(Tabela, numVariaveis);
     let VariaveisBasicas = identificarVariaveisBasicas(Tabela, numVariaveis);
 
+    // Adiciona a última iteração com os resultados finais
+    iteracoes.push({
+        iteracao: Tabelas.length,
+        Tabela: formatarTabela(Tabela),
+        pivot: null,
+        variaveisBasicas: VariaveisBasicas
+    });
+
     return {
         ValorOtimo,
         solucao,
@@ -200,6 +208,14 @@ function resolverSimplexFase1(Tabela, cArtificial, numVariaveisComArtificiais) {
     let solucao = extrairSolucao(Tabela, numVariaveisComArtificiais);
     let VariaveisBasicas = identificarVariaveisBasicas(Tabela, numVariaveisComArtificiais);
 
+    // Adiciona a última iteração com os resultados finais
+    iteracoes.push({
+        iteracao: Tabelas.length,
+        Tabela: formatarTabela(Tabela),
+        pivot: null,
+        variaveisBasicas: VariaveisBasicas
+    });
+
     explicacao.push(`Valor ótimo encontrado: ${ValorOtimo}`);
     explicacao.push(`Solução: ${solucao}`);
 
@@ -250,8 +266,8 @@ function selecionarLinhaPivot(Tabela, colunaPivot) {
 
     if (linhaPivot === -1) {
         let error = new Error("O problema é ilimitado.");
-        error.iteracoes = [];
-        error.tabelas = [];
+        error.iteracoes = iteracoes;
+        error.tabelas = Tabelas;
         throw error;
     }
 

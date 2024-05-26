@@ -15,7 +15,7 @@
             margin: auto;
         }
         header {
-            display: flex;
+            display: flex; 
             justify-content: space-between;
             align-items: center;
             padding: 10px 0;
@@ -36,18 +36,19 @@
         }
         form label, form input, form select {
             display: block;
-            margin: 10px 0;
+            margin: 5px 0;
         }
         table {
             width: 100%;
             border-collapse: collapse;
             margin: 20px 0;
+            font-size: 0.9em;
         }
         table, th, td {
             border: 1px solid #000;
         }
         th, td {
-            padding: 10px;
+            padding: 8px;
             text-align: center;
         }
         .pivot-row {
@@ -62,6 +63,23 @@
         }
         .resultado {
             margin-top: 20px;
+            background-color: #f6c28b;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .error-message {
+            color: red;
+            font-weight: bold;
+            text-align: center;
+        }
+        .restricao-inputs {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .restricao-inputs select, .restricao-inputs input {
+            margin: 0 5px;
         }
     </style>
 </head>
@@ -80,9 +98,9 @@
         <h1 id="Titulo Form">Formulário de Programação Linear</h1>
         <form id="formVariaveisRestricoes">
             <label for="num_variaveis">Número de Variáveis:</label>
-            <input type="number" id="num_variaveis" name="num_variaveis" min="1" required><br><br>
+            <input type="number" id="num_variaveis" name="num_variaveis" min="1" required><br>
             <label for="num_restricoes">Número de Restrições:</label>
-            <input type="number" id="num_restricoes" name="num_restricoes" min="1" required><br><br>
+            <input type="number" id="num_restricoes" name="num_restricoes" min="1" required><br>
             <input type="submit" value="Gerar Tabela" id="enviarDados">
         </form>
         <form id="tabelaGerada"></form>
@@ -115,7 +133,7 @@
                     for (var k = 1; k <= numVariaveis; k++) {
                         tabelaHTML += '<td><input type="number" id="restricao_' + j + '_var_' + k + '" name="restricao_' + j + '_var_' + k + '" required></td>';
                     }
-                    tabelaHTML += '<td><select id="sinal_restricao_' + j + '" name="sinal_restricao_' + j + '" required><option value="<="><=</option><option value="=">=</option><option value=">=">>=</option></select><input type="number" id="valor_restricao_' + j + '" name="valor_restricao_' + j + '" required></td></tr>';
+                    tabelaHTML += '<td><div class="restricao-inputs"><select id="sinal_restricao_' + j + '" name="sinal_restricao_' + j + '" required><option value="<="><=</option><option value="=">=</option><option value=">=">>=</option></select><input type="number" id="valor_restricao_' + j + '" name="valor_restricao_' + j + '" required></div></td></tr>';
                 }
 
                 tabelaHTML += '<tr><td>Limite Inferior</td>';
@@ -147,7 +165,7 @@
                     var variaveisNomes = [];
                     for (var i = 1; i <= numVariaveis; i++) {
                         objetivo.push(parseFloat(document.getElementById('funcao_z_var_' + i).value));
-                        variaveisNomes.push('X' + i);
+                        variaveisNomes.push('x' + i);
                     }
 
                     var restricoes = [];
@@ -176,7 +194,7 @@
                         if (data.status === "Sucesso") {
                             renderizarIteracoes(data.iteracoes, data.resumo, variaveisNomes, numRestricoes);
                         } else {
-                            document.getElementById('resultado').innerHTML = `<p>${data.mensagem}</p>`;
+                            document.getElementById('resultado').innerHTML = `<p class="error-message">${data.mensagem}</p>`;
                         }
                     })
                     .catch(error => console.error('Erro:', error));
@@ -195,11 +213,12 @@
                     iteracoesHTML += '<table>';
                     iteracoesHTML += '<tr><th>Base</th>';
 
-                    let extraVariablesCount = iteracao.Tabela[0].length - variaveisNomes.length;
-                    let allVariableNames = [...variaveisNomes, ...Array.from({ length: extraVariablesCount }, (_, i) => `Sx${i + 1}`)];
-
-                    allVariableNames.forEach(varName => {
-                        iteracoesHTML += `<th>${varName}</th>`;
+                    iteracao.Tabela[0].forEach((_, colIndex) => {
+                        if (colIndex === iteracao.Tabela[0].length - 1) {
+                            iteracoesHTML += `<th>Solução</th>`;
+                        } else {
+                            iteracoesHTML += `<th>${colIndex < variaveisNomes.length ? variaveisNomes[colIndex] : `sx${colIndex + 1}`}</th>`;
+                        }
                     });
 
                     iteracoesHTML += '</tr>';
@@ -213,9 +232,9 @@
                         }
                         linha.forEach((celula, colIndex) => {
                             let cellClass = '';
-                            if (linhaIndex === iteracao.pivot.linha) cellClass += ' pivot-row';
-                            if (colIndex === iteracao.pivot.coluna) cellClass += ' pivot-column';
-                            iteracoesHTML += `<td class="${cellClass}">${linhaIndex === iteracao.pivot.linha && colIndex === iteracao.pivot.coluna ? `<span class="pivot-number">${celula}</span>` : celula}</td>`;
+                            if (iteracao.pivot && linhaIndex === iteracao.pivot.linha) cellClass += ' pivot-row';
+                            if (iteracao.pivot && colIndex === iteracao.pivot.coluna) cellClass += ' pivot-column';
+                            iteracoesHTML += `<td class="${cellClass}">${iteracao.pivot && linhaIndex === iteracao.pivot.linha && colIndex === iteracao.pivot.coluna ? `<span class="pivot-number">${celula}</span>` : celula}</td>`;
                         });
                         iteracoesHTML += '</tr>';
                     });

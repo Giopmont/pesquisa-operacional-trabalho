@@ -22,7 +22,7 @@ app.post('/simplex', (req, res) => {
         res.send({
             status: "Sucesso",
             resumo: {
-                numeroDeIteracoes: resultado.Tabelas.length - 1,
+                numeroDeIteracoes: resultado.iteracoes.length,
                 valorOtimo: resultado.ValorOtimo,
                 valoresDasVariaveis: resultado.solucao,
                 variaveisBasicas: resultado.VariaveisBasicas
@@ -32,7 +32,9 @@ app.post('/simplex', (req, res) => {
     } catch (error) {
         res.status(500).send({
             status: "Falha",
-            mensagem: error.message
+            mensagem: error.message,
+            iteracoes: error.iteracoes,
+            tabelas: error.tabelas
         });
     }
 });
@@ -60,14 +62,15 @@ function solverSimplex(dados) {
         let pivot = encontrarPivot(Tabela);
         if (pivot.coluna === -1) break;
 
-        pivotearTabela(Tabela, pivot);
-        Tabelas.push(clonarTabela(Tabela));
         iteracoes.push({
-            iteracao: Tabelas.length - 1,
-            Tabela: Tabela.map(linha => linha.map(celula => celula.toFixed(2))),
+            iteracao: Tabelas.length,
+            Tabela: formatarTabela(Tabela),
             pivot,
             variaveisBasicas: identificarVariaveisBasicas(Tabela, numVariaveis)
         });
+
+        pivotearTabela(Tabela, pivot);
+        Tabelas.push(clonarTabela(Tabela));
     }
 
     let ValorOtimo = Tabela[0][Tabela[0].length - 1];
@@ -182,19 +185,15 @@ function resolverSimplexFase1(Tabela, cArtificial, numVariaveisComArtificiais) {
         let pivot = encontrarPivot(Tabela);
         if (pivot.coluna === -1) break;
 
-        explicacao.push(`Selecionando o pivô na coluna ${pivot.coluna + 1} e linha ${pivot.linha + 1}.`);
-
-        pivotearTabela(Tabela, pivot);
-        Tabelas.push(clonarTabela(Tabela));
         iteracoes.push({
-            iteracao: Tabelas.length - 1,
-            Tabela: Tabela.map(linha => linha.map(celula => celula.toFixed(2))),
+            iteracao: Tabelas.length,
+            Tabela: formatarTabela(Tabela),
             pivot,
             variaveisBasicas: identificarVariaveisBasicas(Tabela, numVariaveisComArtificiais)
         });
 
-        explicacao.push(`Tabela após a iteração ${Tabelas.length - 1}:`);
-        explicacao.push(Tabela.map(linha => linha.map(celula => celula.toFixed(2))));
+        pivotearTabela(Tabela, pivot);
+        Tabelas.push(clonarTabela(Tabela));
     }
 
     let ValorOtimo = Tabela[0][Tabela[0].length - 1];
@@ -249,7 +248,13 @@ function selecionarLinhaPivot(Tabela, colunaPivot) {
         }
     }
 
-    if (linhaPivot === -1) throw new Error("O problema é ilimitado.");
+    if (linhaPivot === -1) {
+        let error = new Error("O problema é ilimitado.");
+        error.iteracoes = [];
+        error.tabelas = [];
+        throw error;
+    }
+
     return linhaPivot;
 }
 
@@ -332,4 +337,8 @@ function identificarVariaveisBasicas(Tabela, numVariaveis) {
     return VariaveisBasicas;
 }
 
-app.listen(3000, () => console.log('Servidor Simplex rodando na porta 3000.'));
+function formatarTabela(Tabela) {
+    return Tabela.map(linha => linha.map(celula => Number(celula.toFixed(2))));
+}
+
+app.listen(3003, () => console.log('Servidor Simplex rodando na porta 3003.'));

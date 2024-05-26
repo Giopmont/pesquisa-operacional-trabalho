@@ -15,7 +15,7 @@
             margin: auto;
         }
         header {
-            display: flex; 
+            display: flex;
             justify-content: space-between;
             align-items: center;
             padding: 10px 0;
@@ -81,7 +81,19 @@
         .restricao-inputs select, .restricao-inputs input {
             margin: 0 5px;
         }
+        .footer-buttons {
+            margin-top: 20px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .footer-buttons button {
+            padding: 10px 20px;
+            font-size: 1em;
+            cursor: pointer;
+        }
     </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body>
     <header>
@@ -105,9 +117,15 @@
         </form>
         <form id="tabelaGerada"></form>
         <div id="resultado" class="resultado"></div>
+        <div class="footer-buttons">
+            <button id="exportPdf">Exportar para PDF</button>
+            <button id="newProblem">Limpar/Novo Problema</button>
+        </div>
     </div>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
+            const { jsPDF } = window.jspdf;
+
             document.getElementById('formVariaveisRestricoes').addEventListener('submit', function (event) {
                 event.preventDefault();
 
@@ -193,6 +211,10 @@
                         console.log('Resposta do servidor:', data);
                         if (data.status === "Sucesso") {
                             renderizarIteracoes(data.iteracoes, data.resumo, variaveisNomes, numRestricoes);
+                            window.scrollTo({
+                                top: document.body.scrollHeight,
+                                behavior: 'smooth'
+                            });
                         } else {
                             document.getElementById('resultado').innerHTML = `<p class="error-message">${data.mensagem}</p>`;
                         }
@@ -226,7 +248,7 @@
                         iteracoesHTML += '<tr>';
                         if (linhaIndex > 0) {
                             let varBasica = iteracao.variaveisBasicas.find(v => v.linha === linhaIndex);
-                            iteracoesHTML += `<td>${varBasica ? varBasica.variavel : ''}</td>`;
+                            iteracoesHTML += `<td>${varBasica ? varBasica.variavel : `sx${linhaIndex + 1}`}</td>`;
                         } else {
                             iteracoesHTML += '<td>Z</td>';
                         }
@@ -243,6 +265,48 @@
                 document.getElementById('resultado').innerHTML = iteracoesHTML;
             }
 
+            document.getElementById('exportPdf').addEventListener('click', function() {
+                const doc = new jsPDF();
+
+                let problemaText = 'Problema de Programação Linear:\n';
+                problemaText += `Número de Variáveis: ${document.getElementById('num_variaveis').value}\n`;
+                problemaText += `Número de Restrições: ${document.getElementById('num_restricoes').value}\n`;
+                problemaText += `Objetivo: ${document.getElementById('tipo_problema').value}\n\n`;
+                problemaText += 'Função Objetivo:\n';
+                let funcaoObjetivo = [];
+                for (var i = 1; i <= document.getElementById('num_variaveis').value; i++) {
+                    funcaoObjetivo.push(`${document.getElementById('funcao_z_var_' + i).value}*x${i}`);
+                }
+                problemaText += `${document.getElementById('tipo_problema').value} z = ${funcaoObjetivo.join(' + ')}\n\n`;
+                problemaText += 'Restrições:\n';
+                for (var j = 1; j <= document.getElementById('num_restricoes').value; j++) {
+                    let restricao = [];
+                    for (var k = 1; k <= document.getElementById('num_variaveis').value; k++) {
+                        restricao.push(`${document.getElementById('restricao_' + j + '_var_' + k).value}*x${k}`);
+                    }
+                    problemaText += `${restricao.join(' + ')} ${document.getElementById('sinal_restricao_' + j).value} ${document.getElementById('valor_restricao_' + j).value}\n`;
+                }
+
+                doc.text(problemaText, 10, 10);
+
+                const resultadoElement = document.getElementById('resultado');
+                html2canvas(resultadoElement).then(canvas => {
+                    const imgData = canvas.toDataURL('image/png');
+                    const imgProps = doc.getImageProperties(imgData);
+                    const pdfWidth = doc.internal.pageSize.getWidth();
+                    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+                    doc.addPage();
+                    doc.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+                    doc.save('solucao.pdf');
+                });
+            });
+
+            document.getElementById('newProblem').addEventListener('click', function() {
+                document.getElementById('formVariaveisRestricoes').reset();
+                document.getElementById('tabelaGerada').innerHTML = '';
+                document.getElementById('resultado').innerHTML = '';
+            });
         });
     </script>
 </body>

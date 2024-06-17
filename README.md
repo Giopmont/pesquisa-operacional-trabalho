@@ -13,7 +13,7 @@ Este projeto consiste em uma API para resolver problemas de Programação Linear
 
 1. Clone este repositório para o seu ambiente local:
     ```bash
-    git clone https://github.com/seu-usuario/seu-repositorio.git
+    git clone git@github.com:Giopmont/pesquisa-operacional-trabalho.git
     cd seu-repositorio
     ```
 

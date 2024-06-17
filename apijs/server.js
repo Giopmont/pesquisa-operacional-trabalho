@@ -128,9 +128,7 @@ function metodoDuasFases(dados) {
 
     explicacao.push("Iniciando a Fase 1 do método das duas fases...");
 
-    let cArtificial = Array(Tabela[0].length - 1).fill(0).concat(1);
-
-    let resultadoFase1 = resolverSimplexFase1(Tabela, cArtificial, numVariaveisComArtificiais);
+    let resultadoFase1 = resolverSimplexFase1(Tabela, numVariaveisComArtificiais);
     if (resultadoFase1.ValorOtimo > 0) {
         explicacao.push("O problema é inviável, pois o valor ótimo na fase 1 é maior que zero.");
         return { inviavel: true, explicacao };
@@ -138,17 +136,11 @@ function metodoDuasFases(dados) {
 
     explicacao.push("Terminada a Fase 1. A solução básica viável inicial foi encontrada.");
 
-    let resultadoFase2 = solverSimplex({
-        num_variaveis: num_variaveis,
-        objetivo: objetivo,
-        restricoes: A.map((coef, i) => ({
-            coeficientes: coef,
-            tipo: restricoes[i].tipo,
-            lado_direito: b[i]
-        })),
-        tipo_problema: tipo_problema
-    });
-
+    // Reformulação do problema para a Fase 2
+    let novaTabela = reformularParaFase2(resultadoFase1.Tabela, numVariaveisComArtificiais, num_variaveis, c);
+    
+    let resultadoFase2 = resolverSimplexFase2(novaTabela, num_variaveis, c);
+    
     return {
         ValorOtimo: resultadoFase2.ValorOtimo,
         solucao: resultadoFase2.solucao,
@@ -159,9 +151,87 @@ function metodoDuasFases(dados) {
     };
 }
 
+function reformularParaFase2(tabelaFase1, numVariaveisComArtificiais, numVariaveisOriginais, c) {
+    // Remove as colunas correspondentes às variáveis artificiais
+    for (let i = 0; i < tabelaFase1.length; i++) {
+        tabelaFase1[i].splice(numVariaveisOriginais, numVariaveisComArtificiais - numVariaveisOriginais);
+    }
+
+    // Ajustar a linha do objetivo com os coeficientes originais
+    for (let j = 0; j < numVariaveisOriginais; j++) {
+        tabelaFase1[0][j] = c[j];
+    }
+
+    // Recalcular a linha do objetivo
+    for (let i = 1; i < tabelaFase1.length; i++) {
+        if (tabelaFase1[i][numVariaveisOriginais + i - 1] === 1) {  // Verifica se a variável básica é artificial
+            for (let j = 0; j < numVariaveisOriginais; j++) {
+                tabelaFase1[0][j] -= tabelaFase1[0][numVariaveisOriginais + i - 1] * tabelaFase1[i][j];
+            }
+            tabelaFase1[0][numVariaveisOriginais + i - 1] = 0;
+        }
+    }
+
+    return tabelaFase1;
+}
+
+function resolverSimplexFase2(Tabela, numVariaveis, c) {
+    let Tabelas = [clonarTabela(Tabela)];
+    let iteracoes = [];
+    let explicacao = [];
+
+    explicacao.push("Iniciando o método Simplex...");
+
+    while (true) {
+        let pivot = encontrarPivot(Tabela);
+        if (pivot.coluna === -1) break;
+
+        iteracoes.push({
+            iteracao: Tabelas.length,
+            Tabela: formatarTabela(Tabela),
+            pivot,
+            variaveisBasicas: identificarVariaveisBasicas(Tabela, numVariaveis)
+        });
+
+        pivotearTabela(Tabela, pivot);
+        Tabelas.push(clonarTabela(Tabela));
+    }
+
+    let solucao = extrairSolucao(Tabela, numVariaveis);
+    let VariaveisBasicas = identificarVariaveisBasicas(Tabela, numVariaveis);
+
+    // Calcular o valor ótimo da função objetivo original
+    let ValorOtimo = 0;
+    for (let i = 0; i < numVariaveis; i++) {
+        ValorOtimo += c[i] * solucao[i];
+    }
+
+    // Adiciona a última iteração com os resultados finais
+    iteracoes.push({
+        iteracao: Tabelas.length,
+        Tabela: formatarTabela(Tabela),
+        pivot: null,
+        variaveisBasicas: VariaveisBasicas
+    });
+
+    explicacao.push(`Valor ótimo encontrado: ${ValorOtimo}`);
+    explicacao.push(`Solução: ${solucao}`);
+
+    return {
+        Tabela,
+        ValorOtimo,
+        solucao,
+        Tabelas,
+        iteracoes,
+        VariaveisBasicas,
+        explicacao
+    };
+}
+
 function inicializaTabelaComArtificiais(A, b, numVariaveis, restricoes) {
     let numLinhas = A.length;
-    let numColunas = numVariaveis + numLinhas + restricoes.filter(r => r.tipo !== '<=').length + 1;
+    let numArtificiais = restricoes.filter(r => r.tipo !== '<=').length;
+    let numColunas = numVariaveis + numLinhas + numArtificiais + 1;
     let Tabela = Array(numLinhas + 1).fill(null).map(() => Array(numColunas).fill(0));
 
     for (let i = 0; i < numLinhas; i++) {
@@ -179,10 +249,22 @@ function inicializaTabelaComArtificiais(A, b, numVariaveis, restricoes) {
         Tabela[i + 1][numColunas - 1] = b[i];
     }
 
-    return { Tabela, numVariaveis: numVariaveis + numLinhas };
+    // Ajuste a linha z para o objetivo artificial
+    for (let j = numVariaveis + numLinhas; j < numVariaveis + numLinhas + numArtificiais; j++) {
+        Tabela[0][j] = 1;
+        for (let i = 1; i < Tabela.length; i++) {
+            if (Tabela[i][j] === 1) {
+                for (let k = 0; k < Tabela[0].length; k++) {
+                    Tabela[0][k] -= Tabela[i][k];
+                }
+            }
+        }
+    }
+
+    return { Tabela, numVariaveis: numVariaveis + numLinhas + numArtificiais };
 }
 
-function resolverSimplexFase1(Tabela, cArtificial, numVariaveisComArtificiais) {
+function resolverSimplexFase1(Tabela, numVariaveisComArtificiais) {
     let Tabelas = [clonarTabela(Tabela)];
     let iteracoes = [];
     let explicacao = [];
